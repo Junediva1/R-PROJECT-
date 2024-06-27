@@ -1,0 +1,277 @@
+---
+title: "Titanic Ship"
+output: html_document
+date: "2024-06-26"
+---
+
+```{r}
+library("readr")
+library("dplyr")
+library("ggplot2")
+library("tidyverse")
+library("plotly")
+library("stringr")
+library("tidyr")
+library("tidyverse")
+```
+
+## For this project, I will be analyzing a data set from Kaggle, on the topic Spaceship Titanic. I will be drawing conclusion from the data set!
+
+## Viewing the Data
+
+```{r}
+train <- read_csv("train.csv")
+View(train)
+```
+
+## Looking at Variables
+
+-   First lets look at the age, and the age group
+
+```{r}
+# What were the age groups of the Titanic Spaceship?
+get_age_group <- function(pass_age){
+  group <- NA
+  if(is.na(pass_age)){group <- NA}
+  else{
+    age <- as.integer(pass_age)
+    if(age < 5){group <- "Infant"}
+    else if(age < 18){group <- "Adolescent"}
+    else if(age < 35){group <- "Young Adult"}
+    else if(age < 60){group <- "Adult"}
+    else{group <- "Older Adult"}
+  }
+  return(group)
+}
+
+train$age_group <- unlist(lapply(train[["Age"]], get_age_group))
+head(train)
+```
+
+-   Age Group for 60 and older
+
+```{r}
+# Passengers who are 60 and older on Titanic
+passengers_over_60 <- train %>%
+  filter(Age > 60)
+total_passengers_over_60 <- nrow(passengers_over_60)
+cat("\nTotal passengers over the age of 60:", total_passengers_over_60, "\n")
+```
+
+-   Age Group for 59 and younger
+
+```{r}
+# Passengers who are 59 and younger 
+passengers_under_59 <- train %>%
+  filter(Age < 59)
+total_passengers_under_59 <- nrow(passengers_under_59)
+cat("\nTotal passengers under the age of 59:", total_passengers_under_59, "\n")
+```
+
+-   Age Group for Minors
+
+```{r}
+ # Passengers under 18 
+passengers_under_18 <- train %>%
+  filter(Age < 18)
+total_passengers_under_18 <- nrow(passengers_under_18)
+cat("\nTotal passengers under the age of 18:", total_passengers_under_18, "\n")
+```
+
+-   Age Group for Infants
+
+```{r}
+ # Passengers who are infants 
+passengers_under_1 <- train %>%
+  filter(Age < 1)
+total_passengers_under_1 <- nrow(passengers_under_1)
+cat("\nTotal passengers under the age of 1:", total_passengers_under_1, "\n")
+```
+
+**Summary for age groups on the Titanic Spaceship!**
+
+**The age group passengers were 29, youngest passengers were 0, and the oldest passengers were 79. 53% were adult ages from  20-39. Minors ages from  0-12 (9%) and senior 60+ (3%). Among the transported passengers, children 0-12 shows the highest likelihood of being transported (70%) than the older age groups.**
+
+Next we are going to be looking at HomePlanet, and Destination!
+
+```{r}
+ # How many homeplanets and where did they come from?
+count_planets <- train %>%
+  summarise(count_planets = n_distinct(HomePlanet))
+cat("\nNumber of count_planets:", count_planets$count_planets, "\n")
+count_planets_home_planets <- train %>%
+  distinct(HomePlanet) %>%
+  arrange(HomePlanet)
+cat("\ncount_planets HomePlanets:\n")
+print(count_planets_home_planets)
+```
+
+```{r}
+ # Passenger Debark!
+count_planets <- train %>%
+  summarise(count_planets = n_distinct(Destination))
+cat("\nNumber of count_planets:", count_planets$count_planets, "\n")
+count_planets_destination <- train %>%
+  distinct(Destination) %>%
+  arrange(Destination)
+cat("\ncount_planets Destination:\n")
+print(count_planets_destination)
+```
+
+**Summary of HomePlanet and Debark on the Titanic Spaceship!**
+
+**53% of the passengers from Earth, 23% of the passengers from Europa, 24% from Mars.**
+
+**For Destination: 69% will be debarking at TRAPPIST-1e, 20% will debark at 55 Cancri e, and 11% will be debarking at PSO J318.5-22.**
+
+-   Very Important People(V.I.P) or NOT!
+
+```{r}
+# Passengers who were VIP and non-VIP
+vip_counts <- train %>%
+  group_by(VIP) %>%
+  summarise(count = n())
+cat("\nVIP Counts:\n")
+print(vip_counts)
+```
+
+-   V.I.P AND MONEY
+
+```{r}
+# Did they passengers who were VIP's spend more than the non VIP's
+train %>%
+  group_by(VIP) %>%
+  filter(CryoSleep == FALSE) %>%
+  mutate(total_spent = RoomService + FoodCourt + ShoppingMall + Spa + VRDeck) %>%
+  summarize(mean_spent = mean(total_spent, na.rm = TRUE))
+```
+
+```{r}
+# Any VIP's in CryoSleep
+vip_cryosleep <- train %>%
+  filter(VIP == "true" & CryoSleep == "true")
+total_vip_cryosleep <- nrow(vip_cryosleep)
+cat("\nTotal VIP passengers in cryosleep:", total_vip_cryosleep, "\n")
+```
+
+**Summary of the V.I.P on the Titanic Spaceship!**
+
+**V.I.P made up 66% of the ratio and they spent more money, which is a given because there were no VIP's in CryoSleep.**
+
+-   WHO SPENT THE MOST MONEY on the Titanic Spaceship!!!
+
+```{r}
+ # Top Spending 
+train <- train |>
+  mutate(Total_bill = RoomService + FoodCourt + ShoppingMall + Spa + VRDeck)
+
+
+train |>
+  select(Name, Age, HomePlanet, Destination, VIP, Transported, Total_bill) |>
+  arrange(desc(Total_bill)) |>
+  top_n(5)
+```
+
+```{r}
+# Average Total Bill for HomePlanet
+
+train |>
+  select(HomePlanet, Total_bill) |>
+  group_by(HomePlanet) |>
+  summarise(
+    Avg_Total_bill = mean(Total_bill, na.rm = TRUE)
+  ) |>
+  arrange(desc(Avg_Total_bill))
+```
+
+```{r}
+# Sum of Total bill for Debark
+train |>
+  select(Destination, Total_bill) |>
+  group_by(Destination) |>
+  summarise(
+    Avg_Total_bill = mean(Total_bill, na.rm = TRUE)
+  ) |>
+  arrange(desc(Avg_Total_bill))
+```
+
+**Summary on the spenders on the HomePlanet:**
+
+**The top spenders on the Titanic Spaceship were Markar R, who came from Europa, debarking 55 Cancri e who spent \$35,987.00. Then after that we have Pulchib Q,Scharab C, Mirfar O, and Maiam O.  Everyone’s home planet Europa. Ranging from age 68 and  the Youngest being 18.Passengers from HomePlanet Europa had the highest average in total bill.**
+
+**Demographics:**
+
+```{r}
+# Age Demographic # plot
+train |>
+  ggplot(aes(Age)) +
+  geom_histogram(binwidth = 5, colour="black", fill="white")
+
+```
+
+-   **Passengers per destination**
+
+```{r}
+ggplot(destination_counts, aes(x = Destination, y = n, fill = Destination)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Total Passengers per Destination",
+       x = "Destination",
+       y = "Count")
+```
+
+-   According to the data majority of the passengers are debarking TRAPPIST-1e.
+
+-   Below demographics of VIP's
+
+    ```{r}
+    ggplot(vip_counts, aes(x = VIP, y = count, fill = VIP)) +
+      geom_bar(stat = "identity") +
+      theme_minimal() +
+      labs(title = "Number of VIP and Non-VIP Passengers",
+           x = "VIP Status",
+           y = "Count")
+    ```
+
+    Not that many people in V.I.P's
+
+```{r}
+cryosleep_counts <- train %>%
+  mutate(CryoSleep = ifelse(CryoSleep == "true", "In CryoSleep", "Not in CryoSleep")) %>%
+  group_by(VIP, CryoSleep) %>%
+  summarise(count = n(), .groups = 'drop')
+
+ggplot(cryosleep_counts, aes(x = CryoSleep, y = count, fill = VIP)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  labs(title = "Passengers in CryoSleep: VIP vs Non-VIP",
+       x = "CryoSleep Status",
+       y = "Count")
+
+# Display the plots
+print(ggplot2::last_plot())
+```
+
+Above you can see that there were not a lot of passengers in V.I.P's, and no V.I.P passenger stayed at the CryoSleep.
+
+Average spent VIP Demographic
+
+```{r}
+VIP_spent <- train %>%
+  group_by(VIP) %>%
+  summarise(Average_Spent = mean(RoomService + FoodCourt + ShoppingMall + Spa + VRDeck, na.rm = TRUE)) 
+
+
+ggplot(VIP_spent, aes(x = VIP, y = Average_Spent)) +
+  geom_bar(stat = "identity") +
+  labs(x = "VIP status", y = "Average Spent")
+
+str(train$VIP)
+
+```
+
+In Conclusion:
+
+The Titanic Spaceship data had a record of 8,693 passengers. The data collected information from passengers from different homeplanets, that included name, age, and where they were going.
+
+The data also has record on where they were going to sleep, if they were VIP's or non VIP's. The passengers with VIP service they lack nothing, they were the top spenders on the ship, and they were very wealthy!
